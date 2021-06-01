@@ -2,20 +2,23 @@ from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
+
+#Password Generator Project
 def generate_password():
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
-               'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-               'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+               'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+               'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
 
     password_letters = [choice(letters) for _ in range(randint(8, 10))]
-    password_numbers = [choice(numbers) for _ in range(randint(2, 4))]
     password_symbols = [choice(symbols) for _ in range(randint(2, 4))]
+    password_numbers = [choice(numbers) for _ in range(randint(2, 4))]
 
-    password_list = password_letters + password_numbers + password_symbols
+    password_list = password_letters + password_symbols + password_numbers
     shuffle(password_list)
 
     password = "".join(password_list)
@@ -23,69 +26,94 @@ def generate_password():
     pyperclip.copy(password)
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
-# Saves inputted data in .txt
 def save():
-    # Gets data from entries
-    website = website_entry.get()
-    username = username_entry.get()
-    password = password_entry.get()
 
-    # User checks if entered data is ok. If is - saves data in .txt
-    if not website or not username or not password:
-        messagebox.askokcancel(title="NO DATA", message="INPUT DATA OR CHARON WILL TAKE YOU TO HADES")
+    website = website_entry.get()
+    email = email_entry.get()
+    password = password_entry.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password,
+        }
+    }
+
+    if len(website) == 0 or len(password) == 0:
+        messagebox.showinfo(title="NO DATA!", message="INPUT DATA OR CHARON WILL TAKE YOU TO HADES!")
     else:
-        # Pop-up for user
-        is_ok = messagebox.askokcancel(title=website, message=f"These are the detailes entered: \nEmail: {username}"
-                                                              f"\nPassword: {password}\nIs it ok to save?")
-        if is_ok:
-            with open("PASSWORDS.txt", "a") as PASSWORDS:
-                PASSWORDS.write(f"\nWEBSITE: {website}"
-                                f"\nUSERNAME: {username}"
-                                f"\nPASSWORD: {password}"
-                                f"\n------------------------------------------------")
+        try:
+            with open("data.json", "r") as data_file:
+                # Reads old data
+                data = json.load(data_file)
+        except FileNotFoundError:
+            with open("data.json", "w") as data_file:
+                json.dump(new_data, data_file, indent=4)
+        else:
+            # Updates old data with new data
+            data.update(new_data)
+            with open("data.json", "w") as data_file:
+                # Saves updated data
+                json.dump(data, data_file, indent=4)
+        finally:
             website_entry.delete(0, END)
-            username_entry.delete(0, END)
             password_entry.delete(0, END)
+            email_entry.delete(0, END)
+
+# ---------------------------- FIND PASSWORD -------------------------- #
+def find_password():
+    website = website_entry.get()
+    try:
+        with open("data.json") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showinfo("ERROR", message="NO DATA FILE FOUND.")
+    else:
+        if website in data:
+            email = data[website]["email"]
+            password = data[website]["password"]
+            messagebox.showinfo(title=website, message=f"Email: {email}\nPassword: {password}")
+        else:
+            messagebox.showinfo(title="ERROR", message=f"THERE IS NO WEBSITE SUCH AS {website} IN DATABASE.")
 
 # ---------------------------- UI SETUP ------------------------------- #
-# Sets up a main window of program
 window = Tk()
-window.title("Cerberus")
+window.title("Password Manager")
 window.config(padx=20, pady=20)
 
-# Loads and sets up an image
-canvas = Canvas(width=400, height=300, highlightthickness=0)
-cerber_img = PhotoImage(file="cerber.png")
-canvas.create_image(200, 150, image=cerber_img)
-canvas.grid(column=1, row=0, columnspan=3)
+canvas = Canvas(height=400, width=400)
+logo_img = PhotoImage(file="logo.png")
+canvas.create_image(200, 200, image=logo_img)
+canvas.grid(row=0, column=1, columnspan=3)
 
-# Labels
+#Labels
 website_label = Label(text="Website:")
-website_label.grid(column=0, row=1)
+website_label.grid(row=1, column=0)
 
-username_label = Label(text="Email/Username:")
-username_label.grid(column=0, row=2)
+email_label = Label(text="Email/Username:")
+email_label.grid(row=2, column=0)
 
 password_label = Label(text="Password:")
-password_label.grid(column=0, row=3)
+password_label.grid(row=3, column=0)
 
-# Entries
-website_entry = Entry(width=43)
+#Entries
+website_entry = Entry(width=42)
+website_entry.grid(row=1, column=1)
 website_entry.focus()
-website_entry.grid(column=1, row=1, columnspan=2)
 
-username_entry = Entry(width=43)
-username_entry.grid(column=1, row=2, columnspan=2)
+email_entry = Entry(width=60)
+email_entry.grid(row=2, column=1, columnspan=2)
 
-password_entry = Entry(width=21)
-password_entry.grid(column=1, row=3)
+password_entry = Entry(width=42)
+password_entry.grid(row=3, column=1)
 
 # Buttons
-generate_button = Button(text="Generate Password", command=generate_password)
-generate_button.grid(column=2, row=3)
+generate_password_button = Button(text="Generate Password", width=14, command=generate_password)
+generate_password_button.grid(row=3, column=2)
 
-add_button = Button(text="Add", width=41, command=save)
-add_button.grid(column=1, row=4, columnspan=2)
+add_button = Button(text="Add", width=57, command=save)
+add_button.grid(row=4, column=1, columnspan=3)
 
+search_button = Button(text="Search", width=14, command=find_password)
+search_button.grid(row=1, column=2)
 
 window.mainloop()
